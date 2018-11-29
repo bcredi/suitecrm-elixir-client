@@ -9,15 +9,7 @@ defmodule SuiteCrm do
   Create a new session_id using *username* and *password* params.
   """
   def login(url, username, password) do
-    params = %{
-      "user_auth" => %{
-        "user_name" => username,
-        "password" => password_hash(password)
-      },
-      "application_name" => '',
-      "name_value_list" => []
-    }
-
+    params = ~s({"user_auth":{"user_name":"#{username}","password":"#{password_hash(password)}"}})
     request(url, "login", params)
   end
 
@@ -46,18 +38,18 @@ defmodule SuiteCrm do
       iex> request("http://crm.bcredi.com.br", "set_entry", params)
       {:ok, %HTTPoison.Response{}}
   """
-  def request(url, method, params \\ %{}, headers \\ []) do
+  def request(url, method, params, headers \\ []) do
     headers = [{"Content-Type", "application/x-www-form-urlencoded"} | headers]
     HTTPoison.post(url <> @endpoint, request_params(method, params), headers)
   end
 
-  defp request_params(method, params \\ %{}) do
-    params = %{
+  defp request_params(method, params) do
+    params = [
       method: method,
       input_type: "JSON",
       response_type: "JSON",
-      rest_data: Jason.encode!(params)
-    }
+      rest_data: params
+    ]
 
     {:form, params}
   end
