@@ -9,7 +9,13 @@ defmodule SuiteCrm do
   Create a new session_id using *username* and *password* params.
   """
   def login(url, username, password) do
-    params = ~s({"user_auth":{"user_name":"#{username}","password":"#{password_hash(password)}"}})
+    params = %{
+      user_auth: %{
+        user_name: username,
+        password: password_hash(password)
+      }
+    }
+
     request(url, "login", params)
   end
 
@@ -21,9 +27,9 @@ defmodule SuiteCrm do
   """
   def set_entry(url, session_id, module_name, data \\ []) do
     params = %{
-      "session" => session_id,
-      "module_name" => module_name,
-      "name_value_list" => data
+      session: session_id,
+      module_name: module_name,
+      name_value_list: data
     }
 
     request(url, "set_entry", params)
@@ -48,7 +54,7 @@ defmodule SuiteCrm do
       method: method,
       input_type: "JSON",
       response_type: "JSON",
-      rest_data: params
+      rest_data: Jason.encode!(params)
     ]
 
     {:form, params}
