@@ -25,14 +25,19 @@ defmodule SuiteCrm do
   @doc """
   Create or update an entry of a crm *module*.
   """
-  def set_entry(url, session_id, module_name, data \\ []) do
+  def set_entry(url, session_id, module_name, data \\ %{}) do
     params = %{
-      session: session_id,
-      module_name: module_name,
-      name_value_list: data
+      name_value_list: build_name_value_list(data),
+      module_name: module_name
     }
 
-    request(url, "set_entry", params)
+    request(url, "set_entry", params, session_id)
+  end
+
+  defp build_name_value_list(data) do
+    data
+    |> Enum.map(fn {name, value} -> %{name => %{name: name, value: value}} end)
+    |> Enum.reduce(%{}, fn acc, x -> Map.merge(acc, x) end)
   end
 
   @doc """
@@ -40,16 +45,19 @@ defmodule SuiteCrm do
 
   Examples:
 
-      iex> params = [%{"name" => "email", "value" => "mauricio@bcredi.com.br"}]
-      iex> request("http://crm.bcredi.com.br", "set_entry", params)
+      iex> values = %{email1: %{name: "email1", value: "mauricio@bcredi.com.br"}}
+      iex> params = %{session: "123", name_value_list: values}
+      iex> request("http://crm.bcredi.com.br", "set_entry", params, "some-session-id")
       {:ok, %HTTPoison.Response{}}
   """
-  def request(url, method, params, headers \\ []) do
+  def request(url, method, params, session \\ nil, headers \\ []) do
     headers = [{"Content-Type", "application/x-www-form-urlencoded"} | headers]
-    HTTPoison.post(url <> @endpoint, request_params(method, params), headers)
+    HTTPoison.post(url <> @endpoint, request_params(method, params, session), headers)
   end
 
-  defp request_params(method, params) do
+  defp request_params(method, params, session)
+
+  defp request_params(method, params, nil) do
     params = [
       method: method,
       input_type: "JSON",
@@ -58,5 +66,26 @@ defmodule SuiteCrm do
     ]
 
     {:form, params}
+  end
+
+  defp request_params(method, params, session) do
+    data = params |> Jason.encode!() |> build_authenticated_rest_data(session)
+
+    params = [
+      method: method,
+      input_type: "JSON",
+      response_type: "JSON",
+      rest_data: data
+    ]
+
+    {:form, params}
+  end
+
+  # SuiteCRM api params require order
+  # (session need to be sent before any other param)
+  # 
+  # Split at first char `{` to allow us concat the session in the beggining
+  defp build_authenticated_rest_data("{" <> data, session) do
+    ~s({"session":"#{session}", ) <> data
   end
 end
