@@ -41,6 +41,19 @@ defmodule SuiteCrm do
   end
 
   @doc """
+  Get an entry of a crm *module*.
+  """
+  def get_entry(url, session_id, module_name, id, select_fields \\ []) do
+    params = %{
+      module_name: module_name,
+      id: id,
+      select_fields: select_fields
+    }
+
+    request(url, "get_entry", params, session_id)
+  end
+
+  @doc """
   Make a request for the SuiteCRM api.
 
   Examples:
@@ -68,6 +81,25 @@ defmodule SuiteCrm do
     {:form, params}
   end
 
+  defp request_params("get_entry" = method, params, session) do
+    data = ~s({
+      "session":"#{session}",
+      "module_name":"#{params[:module_name]}",
+      "id":"#{params[:id]}",
+      "link_name_to_fields_array":[],
+      "select_fields":#{Jason.encode!(params[:select_fields])}
+    })
+
+    params = [
+      method: method,
+      input_type: "JSON",
+      response_type: "JSON",
+      rest_data: data
+    ]
+
+    {:form, params}
+  end
+
   defp request_params(method, params, session) do
     data = params |> Jason.encode!() |> build_authenticated_rest_data(session)
 
@@ -83,7 +115,7 @@ defmodule SuiteCrm do
 
   # SuiteCRM api params require order
   # (session need to be sent before any other param)
-  # 
+  #
   # Split at first char `{` to allow us concat the session in the beggining
   defp build_authenticated_rest_data("{" <> data, session) do
     ~s({"session":"#{session}", ) <> data
