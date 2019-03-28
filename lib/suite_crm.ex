@@ -8,7 +8,7 @@ defmodule SuiteCrm do
   @doc """
   Create a new session_id using *username* and *password* params.
   """
-  def login(url, username, password) do
+  def login(url, username, password, options \\ []) do
     params = %{
       user_auth: %{
         user_name: username,
@@ -16,7 +16,7 @@ defmodule SuiteCrm do
       }
     }
 
-    request(url, "login", params)
+    request(url, "login", params, nil, [], options)
   end
 
   defp password_hash(password),
@@ -25,13 +25,13 @@ defmodule SuiteCrm do
   @doc """
   Create or update an entry of a crm *module*.
   """
-  def set_entry(url, session_id, module_name, data \\ %{}) do
+  def set_entry(url, session_id, module_name, data \\ %{}, options \\ []) do
     params = %{
       name_value_list: build_name_value_list(data),
       module_name: module_name
     }
 
-    request(url, "set_entry", params, session_id)
+    request(url, "set_entry", params, session_id, [], options)
   end
 
   defp build_name_value_list(data) do
@@ -43,14 +43,14 @@ defmodule SuiteCrm do
   @doc """
   Get an entry of a crm *module*.
   """
-  def get_entry(url, session_id, module_name, id, select_fields \\ []) do
+  def get_entry(url, session_id, module_name, id, select_fields \\ [], options \\ []) do
     params = %{
       module_name: module_name,
       id: id,
       select_fields: select_fields
     }
 
-    request(url, "get_entry", params, session_id)
+    request(url, "get_entry", params, session_id, [], options)
   end
 
   @doc """
@@ -63,9 +63,9 @@ defmodule SuiteCrm do
       iex> request("http://crm.bcredi.com.br", "set_entry", params, "some-session-id")
       {:ok, %HTTPoison.Response{}}
   """
-  def request(url, method, params, session \\ nil, headers \\ []) do
+  def request(url, method, params, session \\ nil, headers \\ [], options \\ []) do
     headers = [{"Content-Type", "application/x-www-form-urlencoded"} | headers]
-    HTTPoison.post(url <> @endpoint, request_params(method, params, session), headers)
+    HTTPoison.post(url <> @endpoint, request_params(method, params, session), headers, options)
   end
 
   defp request_params(method, params, session)
